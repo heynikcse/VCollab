@@ -1,0 +1,191 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
+import { uploadImage } from '../lib/storage'
+import Button from '../components/ui/Button'
+import SkillPill from '../components/ui/SkillPill'
+import { Avatar, Spinner } from '../components/ui/Primitives'
+
+const SKILL_OPTIONS = [
+  'React', 'Vue', 'Node.js', 'Python', 'Java', 'C++', 'Figma',
+  'UI/UX', 'Machine Learning', 'Data Science', 'Flutter', 'Android',
+  'iOS', 'DevOps', 'Solidity', 'Go', 'Rust', 'PostgreSQL', 'AWS', 'Writing',
+]
+
+export default function ProfileSetupPage() {
+  const { user, refreshProfile } = useAuth()
+  const navigate = useNavigate()
+
+  const [name, setName] = useState('')
+  const [branch, setBranch] = useState('')
+  const [year, setYear] = useState('')
+  const [bio, setBio] = useState('')
+  const [skills, setSkills] = useState([])
+  const [github, setGithub] = useState('')
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function toggleSkill(skill) {
+    setSkills((prev) =>
+      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+    )
+  }
+
+  function handleAvatarSelect(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarFile(file)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
+  const canSubmit = name.trim().length > 0 && branch.trim().length > 0 && year && !saving
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!canSubmit) return
+    setSaving(true)
+    setError('')
+
+    try {
+      let avatar_url = null
+      if (avatarFile) {
+        avatar_url = await uploadImage('avatars', avatarFile, user.id)
+      }
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          name: name.trim(),
+          branch: branch.trim(),
+          year: Number(year),
+          bio: bio.trim() || null,
+          skills,
+          github: github.trim() || null,
+          ...(avatar_url ? { avatar_url } : {}),
+        })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+
+      refreshProfile()
+      navigate('/feed')
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-paper py-10 px-4">
+      <div className="max-w-lg mx-auto">
+        <h1 className="font-display text-2xl font-semibold mb-1">Set up your profile</h1>
+        <p className="text-sm text-ink-faint mb-7">
+          This is what teammates see before they invite you in. Make it count.
+        </p>
+
+        <form onSubmit={handleSubmit} className="bg-white border border-line rounded-xl p-7 space-y-6">
+          {/* Avatar */}
+          <div className="flex items-center gap-4">
+            <Avatar url={avatarPreview} name={name} size={64} />
+            <label className="cursor-pointer">
+              <span className="text-sm font-medium text-ink underline underline-offset-2">
+                {avatarFile ? 'Change photo' : 'Add photo (optional)'}
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
+            </label>
+          </div>
+
+          <Field label="NAME">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nikhil Raj"
+              className="input"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="BRANCH">
+              <input
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                placeholder="Computer Science"
+                className="input"
+              />
+            </Field>
+            <Field label="YEAR">
+              <select value={year} onChange={(e) => setYear(e.target.value)} className="input">
+                <option value="">Select</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="BIO" hint={`${bio.length}/160`}>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value.slice(0, 160))}
+              placeholder="What are you building? What do you want to build?"
+              rows={2}
+              className="input resize-none"
+            />
+          </Field>
+
+          <Field label="GITHUB USERNAME">
+            <div className="flex items-center">
+              <span className="text-sm text-ink-faint font-mono pl-3.5 pr-1 py-2.5 border border-r-0 border-line rounded-l-md bg-paper-dim">
+                github.com/
+              </span>
+              <input
+                value={github}
+                onChange={(e) => setGithub(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
+                placeholder="nikhilraj"
+                className="input rounded-l-none flex-1"
+              />
+            </div>
+          </Field>
+
+          <div>
+            <label className="block text-xs font-mono text-ink-soft mb-2">YOUR SKILLS</label>
+            <div className="flex flex-wrap gap-2">
+              {SKILL_OPTIONS.map((skill) => (
+                <SkillPill key={skill} active={skills.includes(skill)} onClick={() => toggleSkill(skill)}>
+                  {skill}
+                </SkillPill>
+              ))}
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-rust-soft border border-rust/20 rounded-md px-3 py-2 text-sm text-rust">
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" variant="accent" size="lg" className="w-full" disabled={!canSubmit}>
+            {saving ? <Spinner size={18} /> : 'Save profile & continue'}
+          </Button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, hint, children }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="block text-xs font-mono text-ink-soft">{label}</label>
+        {hint && <span className="text-xs text-ink-faint font-mono">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  )
+}
