@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { Card, Avatar } from './ui/Primitives'
 import SkillPill from './ui/SkillPill'
 import Button from './ui/Button'
+import ProjectChatDrawer from './ProjectChatDrawer'
 
 const STATUS_TONE = { open: 'teal', in_progress: 'amber', completed: 'default' }
 const STATUS_LABEL = { open: 'Open', in_progress: 'In progress', completed: 'Completed' }
@@ -15,6 +16,7 @@ export default function ProjectCard({ project, onUpdate }) {
   const [requesting, setRequesting] = useState(false)
   const [requestStatus, setRequestStatus] = useState(project.my_request_status) // null | 'pending' | 'accepted' | 'declined'
   const [members, setMembers] = useState([])
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -76,15 +78,23 @@ export default function ProjectCard({ project, onUpdate }) {
           <p className="text-xs text-ink-faint mb-1.5">Team members</p>
           <div className="flex flex-wrap items-center gap-2">
             {members.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => navigate(m.id === user.id ? '/profile' : `/profile/${m.id}`)}
-                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-                title={m.name}
-              >
-                <Avatar url={m.avatar_url} name={m.name} size={24} />
-                <span className="text-xs text-ink-soft">{m.name}</span>
-              </button>
+              <div key={m.id} className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate(m.id === user.id ? '/profile' : `/profile/${m.id}`)}
+                  className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                  title={`View ${m.name}`}
+                >
+                  <Avatar url={m.avatar_url} name={m.name} size={24} />
+                  <span className="text-xs text-ink-soft">{m.name}</span>
+                </button>
+                {m.id !== user.id && (
+                  <Button variant="ghost" size="sm" className="px-2" onClick={() => setChatOpen(true)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                      <path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -112,16 +122,20 @@ export default function ProjectCard({ project, onUpdate }) {
         </div>
 
         {!isOwner && (
-          <Button
-            variant={requestStatus === 'accepted' ? 'secondary' : 'accent'}
-            size="sm"
-            onClick={requestToJoin}
-            disabled={ctaDisabled}
-          >
-            {ctaLabel()}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={requestStatus === 'accepted' ? 'secondary' : 'accent'}
+              size="sm"
+              onClick={requestToJoin}
+              disabled={ctaDisabled}
+            >
+              {ctaLabel()}
+            </Button>
+          </div>
         )}
       </div>
+
+      <ProjectChatDrawer project={project} open={chatOpen} onClose={() => setChatOpen(false)} />
     </Card>
   )
 }

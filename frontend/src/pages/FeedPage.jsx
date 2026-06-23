@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import PostComposer from '../components/PostComposer'
 import PostCard from '../components/PostCard'
-import Sidebar from '../components/Sidebar'
+import DiscoverySidebar from '../components/DiscoverySidebar'
 import { EmptyState, Spinner } from '../components/ui/Primitives'
 
 const TABS = [
@@ -91,8 +91,16 @@ export default function FeedPage() {
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-      <div className="space-y-4 max-w-2xl">
+    <div className="max-w-6xl mx-auto">
+      <header className="flex items-end justify-between mb-8 flex-wrap gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs mb-3">Feed</div>
+          <h1 className="font-display text-4xl font-bold">Discover the <span className="text-gradient">community</span></h1>
+          <p className="mt-2 text-muted-foreground max-w-xl">See updates from across projects, communities and events — share, discuss, and collaborate.</p>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-2xl space-y-4">
         <PostComposer onPosted={loadPosts} />
 
         <div className="flex items-center gap-1 border-b border-line">
@@ -123,8 +131,6 @@ export default function FeedPage() {
           posts.map((post) => <PostCard key={post.id} post={post} onUpdate={loadPosts} />)
         )}
       </div>
-
-      <Sidebar />
     </div>
   )
 }

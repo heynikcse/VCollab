@@ -9,7 +9,6 @@ const NAV_ITEMS = [
   { to: '/connect', label: 'Connect', icon: ConnectIcon },
   { to: '/community', label: 'Community', icon: CommunityIcon },
   { to: '/events', label: 'Events', icon: EventsIcon },
-  { to: '/messages', label: 'Messages', icon: MessagesIcon },
 ]
 
 export default function AppShell() {
@@ -54,9 +53,9 @@ export default function AppShell() {
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={() => navigate('/feed')} className="flex items-center gap-2">
             <div className="w-7 h-7 rounded bg-ink flex items-center justify-center">
-              <span className="font-display font-bold text-amber text-xs">C</span>
+              <span className="font-display font-bold text-amber text-xs">V</span>
             </div>
-            <span className="font-display font-semibold tracking-tight hidden sm:block">Collagram</span>
+            <span className="font-display font-semibold tracking-tight hidden sm:block">VCollab</span>
           </button>
 
           <nav className="flex items-center gap-1">

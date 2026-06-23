@@ -78,13 +78,19 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="max-w-3xl">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="font-display text-xl font-semibold">Events</h1>
-        {canCreate && (
-          <Button variant="accent" size="sm" onClick={() => setShowCreate(true)}>+ Create event</Button>
-        )}
-      </div>
+    <div className="max-w-6xl mx-auto">
+      <header className="flex items-end justify-between mb-8 flex-wrap gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs mb-3">Events</div>
+          <h1 className="font-display text-4xl font-bold">Upcoming <span className="text-gradient">events</span></h1>
+          <p className="mt-2 text-muted-foreground max-w-xl">Workshops, hackathons and meetups around campus — RSVP and stay involved.</p>
+        </div>
+        <div>
+          {canCreate && (
+            <button className="gradient-neon text-background rounded-xl px-4 py-2.5 text-sm font-semibold" onClick={() => setShowCreate(true)}>+ Create event</button>
+          )}
+        </div>
+      </header>
 
       <div className="flex items-center gap-1 border-b border-line mb-4">
         {TABS.map((t) => (

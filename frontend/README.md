@@ -1,4 +1,4 @@
-# Collagram frontend
+# VCollab frontend
 
 See the [top-level README](../README.md) for full setup instructions
 (Supabase project setup, environment variables, running the dev server).

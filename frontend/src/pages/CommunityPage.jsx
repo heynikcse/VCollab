@@ -57,13 +57,19 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="font-display text-xl font-semibold">Communities</h1>
-        {isAdmin && (
-          <Button variant="accent" size="sm" onClick={() => setShowCreate(true)}>+ New community</Button>
-        )}
-      </div>
+    <div className="max-w-6xl mx-auto">
+      <header className="flex items-end justify-between mb-8 flex-wrap gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs mb-3">Communities</div>
+          <h1 className="font-display text-4xl font-bold">Join interest <span className="text-gradient">circles</span></h1>
+          <p className="mt-2 text-muted-foreground max-w-xl">Clubs, branches and groups — find and join communities that match your interests.</p>
+        </div>
+        <div>
+          {isAdmin && (
+            <button className="gradient-neon text-background rounded-xl px-4 py-2.5 text-sm font-semibold" onClick={() => setShowCreate(true)}>+ New community</button>
+          )}
+        </div>
+      </header>
 
       {loading ? (
         <div className="py-16 flex justify-center"><Spinner size={28} /></div>
@@ -174,7 +180,6 @@ function CommunityDetail({ community, isMember, isAdmin, onBack, onJoinToggle })
                   <span className="text-sm font-medium text-ink">{p.users?.name}</span>
                 </div>
                 <p className="text-sm text-ink-soft whitespace-pre-wrap">{p.content}</p>
-                {p.image_url && <img src={p.image_url} alt="" className="mt-2 rounded-lg border border-line max-h-72 w-full object-cover" />}
                 {isAdmin && (
                   <button
                     onClick={() => togglePin(p.id, p.is_pinned)}

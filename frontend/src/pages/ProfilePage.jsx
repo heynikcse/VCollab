@@ -88,8 +88,8 @@ export default function ProfilePage() {
               <button onClick={signOut} className="text-xs text-ink-faint hover:text-rust">Sign out</button>
             </div>
           ) : (
-            <Button variant="accent" size="sm" onClick={() => navigate(`/messages/${targetId}`)}>
-              Message
+            <Button variant="accent" size="sm" onClick={() => navigate('/connect')}>
+              Connect
             </Button>
           )}
         </div>
@@ -131,13 +131,12 @@ export default function ProfilePage() {
       </div>
 
       <div className="mt-4 space-y-3">
-        {loading ? (
+          {loading ? (
           <div className="py-12 flex justify-center"><Spinner size={24} /></div>
         ) : tab === 'posts' ? (
           posts.length === 0 ? <EmptyState title="No posts yet" /> : posts.map((p) => (
             <Card key={p.id} className="p-4">
               <p className="text-sm text-ink whitespace-pre-wrap">{p.content}</p>
-              {p.image_url && <img src={p.image_url} alt="" className="mt-2 rounded-lg border border-line max-h-64 w-full object-cover" />}
             </Card>
           ))
         ) : tab === 'projects' ? (

@@ -94,33 +94,32 @@ export default function PostCard({ post, onUpdate }) {
   return (
     <Card className="p-4">
       <div className="flex items-start gap-3">
-        <button onClick={() => navigate(isOwner ? '/profile' : '/feed')}>
+        <button onClick={() => navigate(isOwner ? '/profile' : `/profile/${author?.id}`)}>
           <Avatar url={author?.avatar_url} name={author?.name} size={40} />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm text-ink">{author?.name}</span>
-            {author?.branch && (
-              <span className="text-xs text-ink-faint font-mono">
-                {author.branch}{author.year ? ` · ${author.year}YR` : ''}
-              </span>
-            )}
-            <span className="text-xs text-ink-faint">· {timeAgo(post.created_at)}</span>
+          <div className="flex items-center gap-2 justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm text-ink truncate">{author?.name}</span>
+                {author?.branch && (
+                  <span className="text-xs text-ink-faint font-mono">
+                    {author.branch}{author.year ? ` · ${author.year}` : ''}
+                  </span>
+                )}
+                <span className="text-xs text-ink-faint">· {timeAgo(post.created_at)}</span>
+              </div>
+              <div className="mt-2">
+                <SkillPill size="sm" tone={POST_TYPE_TONE[post.post_type] || 'default'}>
+                  {post.post_type}
+                </SkillPill>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-1.5">
-            <SkillPill size="sm" tone={POST_TYPE_TONE[post.post_type] || 'default'}>
-              {post.post_type}
-            </SkillPill>
-          </div>
-
-          <p className="text-sm text-ink mt-2.5 whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm text-ink mt-3 whitespace-pre-wrap leading-relaxed">
             {post.content}
           </p>
-
-          {post.image_url && (
-            <img src={post.image_url} alt="" className="mt-3 rounded-lg border border-line w-full object-cover max-h-96" />
-          )}
 
           <div className="flex items-center gap-5 mt-3.5 pt-3 border-t border-line">
             <button

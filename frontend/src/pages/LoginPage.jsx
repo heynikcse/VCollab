@@ -23,7 +23,7 @@ export default function LoginPage() {
     if (value.length === 0) {
       setDomainError('')
     } else if (!isValidCollegeEmail(value) && value.includes('@')) {
-      setDomainError(`Only ${COLLEGE_DOMAIN} addresses can access Collagram.`)
+      setDomainError(`Only ${COLLEGE_DOMAIN} addresses can access VCollab.`)
     } else {
       setDomainError('')
     }
@@ -87,12 +87,13 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
-      <h1 className="font-display text-2xl font-semibold mb-1">
-        {mode === 'signin' ? 'Welcome back' : 'Join Collagram'}
-      </h1>
-      <p className="text-sm text-ink-faint mb-7">
-        Exclusively for VIT Bhopal students.
-      </p>
+      <div>
+        <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs mb-3">{mode === 'signin' ? 'Sign in' : 'Create account'}</div>
+        <h1 className="font-display text-4xl font-bold mb-1">
+          {mode === 'signin' ? <>Welcome <span className="text-gradient">back</span></> : <>Join <span className="text-gradient">VCollab</span></>}
+        </h1>
+        <p className="mt-2 text-muted-foreground mb-7">Exclusively for VIT Bhopal students.</p>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
@@ -136,13 +137,13 @@ export default function LoginPage() {
           </div>
         )}
 
-        <Button type="submit" variant="accent" size="lg" className="w-full" disabled={!canSubmit}>
-          {submitting ? <Spinner size={18} /> : mode === 'signin' ? 'Sign in' : 'Create account'}
-        </Button>
+          <Button type="submit" variant="accent" size="lg" className="w-full gradient-neon text-background font-semibold rounded-xl" disabled={!canSubmit}>
+            {submitting ? <Spinner size={18} /> : mode === 'signin' ? 'Sign in' : 'Create account'}
+          </Button>
       </form>
 
       <p className="text-sm text-ink-faint text-center mt-6">
-        {mode === 'signin' ? "Don't have an account? " : 'Already on Collagram? '}
+        {mode === 'signin' ? "Don't have an account? " : 'Already on VCollab? '}
         <button
           onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setFormError('') }}
           className="text-ink font-medium underline underline-offset-2 hover:text-amber-deep"
@@ -159,12 +160,12 @@ function AuthShell({ children }) {
     <div className="min-h-screen flex items-center justify-center bg-paper px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-8 h-8 rounded bg-ink flex items-center justify-center">
-            <span className="font-display font-bold text-amber text-sm">C</span>
+          <div className="w-8 h-8 rounded gradient-neon flex items-center justify-center">
+            <span className="font-display font-bold text-background text-sm">V</span>
           </div>
-          <span className="font-display font-semibold text-lg tracking-tight">Collagram</span>
+          <span className="font-display font-semibold text-lg tracking-tight">VCollab</span>
         </div>
-        <div className="bg-white border border-line rounded-xl p-7 shadow-sm">
+        <div className="glass-strong border border-line rounded-xl p-7 shadow-sm">
           {children}
         </div>
         <p className="text-center text-xs text-ink-faint mt-6 font-mono">
