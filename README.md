@@ -1,4 +1,4 @@
-# Collagram
+# VCollab
 
 College-exclusive social & collaboration platform for VIT Bhopal.
 Built with React + Vite + Tailwind CSS, backed by Supabase (Postgres + Auth + Storage + Realtime).
@@ -12,7 +12,7 @@ generic "report a post" flow still exists, with auto-hide at 3 reports.
 ## 1. Create your Supabase project
 
 1. Go to [supabase.com](https://supabase.com) → **New Project**
-2. Name it `collagram`, set a database password (save it), pick a nearby region
+2. Name it `vcollab`, set a database password (save it), pick a nearby region
 3. Wait ~2 min for it to provision
 
 ## 2. Run the database setup
