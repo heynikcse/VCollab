@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Avatar, Card } from './ui/Primitives'
+import { Avatar } from './ui/Primitives'
 import SkillPill from './ui/SkillPill'
 
 const POST_TYPE_TONE = {
@@ -15,9 +15,9 @@ const POST_TYPE_TONE = {
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000
   if (diff < 60) return 'just now'
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
+  return `${Math.floor(diff / 86400)}d`
 }
 
 export default function PostCard({ post, onUpdate }) {
@@ -92,97 +92,118 @@ export default function PostCard({ post, onUpdate }) {
   const author = post.users
 
   return (
-    <Card className="p-4">
+    <div className="vc-card p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <button onClick={() => navigate(isOwner ? '/profile' : `/profile/${author?.id}`)}>
+        <button
+          onClick={() => navigate(isOwner ? '/profile' : `/profile/${post.user_id}`)}
+          className="shrink-0"
+        >
           <Avatar url={author?.avatar_url} name={author?.name} size={40} />
         </button>
+
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm text-ink truncate">{author?.name}</span>
-                {author?.branch && (
-                  <span className="text-xs text-ink-faint font-mono">
-                    {author.branch}{author.year ? ` · ${author.year}` : ''}
-                  </span>
-                )}
-                <span className="text-xs text-ink-faint">· {timeAgo(post.created_at)}</span>
-              </div>
-              <div className="mt-2">
-                <SkillPill size="sm" tone={POST_TYPE_TONE[post.post_type] || 'default'}>
-                  {post.post_type}
-                </SkillPill>
-              </div>
-            </div>
+          {/* Author row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => navigate(isOwner ? '/profile' : `/profile/${post.user_id}`)}
+              className="font-semibold text-sm text-ink hover:text-amber-deep transition-colors"
+            >
+              {author?.name}
+            </button>
+            {author?.branch && (
+              <span className="text-xs text-ink-faint font-mono">
+                {author.branch}{author.year ? ` · Y${author.year}` : ''}
+              </span>
+            )}
+            <span className="text-xs text-ink-faint ml-auto shrink-0">{timeAgo(post.created_at)}</span>
           </div>
 
-          <p className="text-sm text-ink mt-3 whitespace-pre-wrap leading-relaxed">
+          {/* Post type tag */}
+          <div className="mt-1.5">
+            <SkillPill size="sm" tone={POST_TYPE_TONE[post.post_type] || 'default'}>
+              {post.post_type}
+            </SkillPill>
+          </div>
+
+          {/* Content */}
+          <p className="text-sm text-ink-soft mt-2.5 whitespace-pre-wrap leading-relaxed">
             {post.content}
           </p>
 
-          <div className="flex items-center gap-5 mt-3.5 pt-3 border-t border-line">
+          {/* Action bar */}
+          <div className="flex items-center gap-4 mt-3.5 pt-3 border-t border-line-soft">
             <button
               onClick={toggleLike}
-              className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? 'text-rust' : 'text-ink-faint hover:text-ink'}`}
+              className={`flex items-center gap-1.5 text-sm transition-all duration-150 ${
+                liked ? 'text-rust' : 'text-ink-faint hover:text-rust'
+              }`}
             >
               <HeartIcon filled={liked} className="w-4 h-4" />
-              <span className="font-mono text-xs">{likeCount}</span>
+              <span className="font-mono text-xs tabular-nums">{likeCount}</span>
             </button>
+
             <button
               onClick={toggleComments}
               className="flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors"
             >
               <CommentIcon className="w-4 h-4" />
-              <span className="font-mono text-xs">{post.comment_count}</span>
+              <span className="font-mono text-xs tabular-nums">{post.comment_count}</span>
             </button>
-            <button
-              onClick={handleReport}
-              disabled={reported}
-              className={`flex items-center gap-1.5 text-sm ml-auto ${reported ? 'text-rust' : 'text-ink-faint hover:text-ink'}`}
-            >
-              <FlagIcon className="w-4 h-4" />
-              <span className="text-xs">{reported ? 'Reported' : 'Report'}</span>
-            </button>
-            {isOwner && (
-              <button onClick={handleDelete} className="text-xs text-ink-faint hover:text-rust">
-                Delete
-              </button>
-            )}
+
+            <div className="flex items-center gap-3 ml-auto">
+              {!reported && !isOwner && (
+                <button
+                  onClick={handleReport}
+                  className="text-xs text-ink-faint hover:text-rust transition-colors"
+                >
+                  Report
+                </button>
+              )}
+              {reported && <span className="text-xs text-rust">Reported</span>}
+              {isOwner && (
+                <button
+                  onClick={handleDelete}
+                  className="text-xs text-ink-faint hover:text-rust transition-colors"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
 
+          {/* Comments */}
           {showComments && (
-            <div className="mt-3 pt-3 border-t border-line space-y-3">
+            <div className="mt-3 pt-3 border-t border-line-soft space-y-3">
               {comments.map((c) => (
                 <div key={c.id} className="flex items-start gap-2.5">
-                  <Avatar url={c.users?.avatar_url} name={c.users?.name} size={28} />
-                  <div className="bg-paper-dim rounded-lg px-3 py-2 flex-1">
-                    <span className="text-xs font-medium text-ink">{c.users?.name}</span>
-                    <p className="text-sm text-ink-soft mt-0.5">{c.content}</p>
+                  <Avatar url={c.users?.avatar_url} name={c.users?.name} size={26} />
+                  <div className="bg-paper-dim rounded-xl px-3 py-2 flex-1">
+                    <span className="text-xs font-semibold text-ink">{c.users?.name}</span>
+                    <p className="text-sm text-ink-soft mt-0.5 leading-relaxed">{c.content}</p>
                   </div>
                 </div>
               ))}
               <form onSubmit={submitComment} className="flex items-center gap-2 pt-1">
-                <Avatar url={profile?.avatar_url} name={profile?.name} size={28} />
+                <Avatar url={profile?.avatar_url} name={profile?.name} size={26} />
                 <input
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Write a comment..."
-                  className="input flex-1 py-1.5 text-sm"
+                  className="input flex-1 py-1.5 text-sm rounded-xl"
                 />
               </form>
             </div>
           )}
         </div>
       </div>
-    </Card>
+    </div>
   )
 }
 
 function HeartIcon({ filled, ...props }) {
   return (
     <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.5 4 8 3.6 10 5 12 7.5 14 5 16 3.6 18.5 4 22 4.5 23.5 8 22 11.7 19.5 16.4 12 21 12 21z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.5 4 8 3.6 10 5 12 7.5 14 5 16 3.6 18.5 4 22 4.5 23.5 8 22 11.7 19.5 16.4 12 21z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -190,13 +211,6 @@ function CommentIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
       <path d="M21 11.5a8.5 8.5 0 01-8.5 8.5 8.4 8.4 0 01-4-1L3 20l1.1-3.6A8.4 8.4 0 014 13.5 8.5 8.5 0 1121 11.5z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-function FlagIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M4 21V4M4 4h13l-2.5 4L17 12H4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

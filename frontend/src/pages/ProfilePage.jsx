@@ -2,10 +2,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Avatar, Card, Spinner, EmptyState } from '../components/ui/Primitives'
+import { Avatar, Spinner, EmptyState } from '../components/ui/Primitives'
 import SkillPill from '../components/ui/SkillPill'
 import Button from '../components/ui/Button'
-import GithubPanel from '../components/GithubPanel'
 
 const TABS = [
   { key: 'posts', label: 'Posts' },
@@ -27,6 +26,7 @@ export default function ProfilePage() {
   const [projects, setProjects] = useState([])
   const [communities, setCommunities] = useState([])
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({ posts: 0, projects: 0, communities: 0 })
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -36,10 +36,26 @@ export default function ProfilePage() {
     }
   }, [targetId, isOwnProfile, myProfile])
 
+  // Load stats once
+  useEffect(() => {
+    async function loadStats() {
+      const [{ count: postCount }, { count: projectCount }, { count: communityCount }] = await Promise.all([
+        supabase.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', targetId).eq('is_hidden', false),
+        supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', targetId),
+        supabase.from('community_members').select('id', { count: 'exact', head: true }).eq('user_id', targetId),
+      ])
+      setStats({ posts: postCount || 0, projects: projectCount || 0, communities: communityCount || 0 })
+    }
+    loadStats()
+  }, [targetId])
+
   const loadTabData = useCallback(async () => {
     setLoading(true)
     if (tab === 'posts') {
-      let query = supabase.from('posts').select('*, users(name, avatar_url, branch, year)').eq('user_id', targetId)
+      let query = supabase
+        .from('posts')
+        .select('*, users(name, avatar_url, branch, year)')
+        .eq('user_id', targetId)
       if (!isOwnProfile) query = query.eq('is_hidden', false)
       const { data } = await query.order('created_at', { ascending: false }).limit(20)
       setPosts(data || [])
@@ -66,96 +82,148 @@ export default function ProfilePage() {
   useEffect(() => { loadTabData() }, [loadTabData])
 
   if (!profile) {
-    return <div className="py-16 flex justify-center"><Spinner size={28} /></div>
+    return <div className="py-20 flex justify-center"><Spinner size={28} color="text-violet" /></div>
   }
 
   return (
     <div className="max-w-2xl">
-      <Card className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <Avatar url={profile.avatar_url} name={profile.name} size={72} />
-            <div>
-              <h1 className="font-display text-xl font-semibold">{profile.name}</h1>
-              <p className="text-sm text-ink-faint font-mono mt-0.5">
-                {profile.branch}{profile.year ? ` · Year ${profile.year}` : ''}
-              </p>
+      {/* Profile header card */}
+      <div className="vc-card overflow-hidden mb-5">
+        {/* Banner */}
+        <div className="h-24 bg-gradient-to-r from-violet/15 via-amber/10 to-teal/15" />
+
+        <div className="px-5 pb-5">
+          {/* Avatar + actions row */}
+          <div className="flex items-end justify-between -mt-8 mb-4">
+            <div className="relative">
+              <div className="rounded-2xl border-4 border-paper-card overflow-hidden"
+                style={{ width: 72, height: 72 }}>
+                <Avatar url={profile.avatar_url} name={profile.name} size={72} />
+              </div>
             </div>
+
+            {isOwnProfile && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate('/profile/edit')}
+                >
+                  Edit profile
+                </Button>
+                <button
+                  onClick={signOut}
+                  className="text-xs text-ink-faint hover:text-rust transition-colors px-2 py-1.5"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
-          {isOwnProfile ? (
-            <div className="flex flex-col gap-2 items-end">
-              <Button variant="secondary" size="sm" onClick={() => navigate('/profile/edit')}>Edit profile</Button>
-              <button onClick={signOut} className="text-xs text-ink-faint hover:text-rust">Sign out</button>
+
+          {/* Name & meta */}
+          <div className="mb-3">
+            <h1 className="font-display text-xl font-bold text-ink">{profile.name}</h1>
+            <p className="text-sm text-ink-faint font-mono mt-0.5">
+              {profile.branch}{profile.year ? ` · Year ${profile.year}` : ''}
+            </p>
+          </div>
+
+          {profile.bio && (
+            <p className="text-sm text-ink-soft leading-relaxed mb-4">{profile.bio}</p>
+          )}
+
+          {/* Stats row */}
+          <div className="flex items-center gap-6 py-3 border-y border-line-soft mb-4">
+            {[
+              { label: 'Posts', value: stats.posts },
+              { label: 'Projects', value: stats.projects },
+              { label: 'Communities', value: stats.communities },
+            ].map(({ label, value }) => (
+              <div key={label} className="text-center">
+                <p className="font-display font-bold text-lg text-ink leading-none">{value}</p>
+                <p className="text-xs text-ink-faint mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Skills */}
+          {profile.skills?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {profile.skills.map((s) => (
+                <SkillPill key={s} size="sm">{s}</SkillPill>
+              ))}
             </div>
-          ) : (
-            <Button variant="accent" size="sm" onClick={() => navigate('/connect')}>
-              Connect
-            </Button>
+          )}
+
+          {/* GitHub */}
+          {profile.github && (
+            <a
+              href={`https://github.com/${profile.github}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-ink-soft hover:text-ink transition-colors group"
+            >
+              <GithubIcon className="w-4 h-4 group-hover:text-ink" />
+              <span className="underline underline-offset-2 hover:text-amber-deep">
+                github.com/{profile.github}
+              </span>
+            </a>
           )}
         </div>
+      </div>
 
-        {profile.bio && <p className="text-sm text-ink-soft mt-4 leading-relaxed">{profile.bio}</p>}
-
-        {profile.skills?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-4">
-            {profile.skills.map((s) => <SkillPill key={s} size="sm">{s}</SkillPill>)}
-          </div>
-        )}
-
-        {profile.github && (
-          <a
-            href={`https://github.com/${profile.github}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-ink mt-4 underline underline-offset-2 hover:text-amber-deep"
-          >
-            <GithubIcon className="w-4 h-4" />
-            github.com/{profile.github}
-          </a>
-        )}
-      </Card>
-
-      <GithubPanel username={profile.github} />
-
-      <div className="flex items-center gap-1 border-b border-line mt-6">
+      {/* Tab bar */}
+      <div className="flex items-center gap-1 border-b border-line mb-4">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors
-              ${tab === t.key ? 'border-ink text-ink' : 'border-transparent text-ink-faint hover:text-ink'}`}
+            className={`tab-btn ${tab === t.key ? 'tab-btn-active' : 'tab-btn-inactive'}`}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-4 space-y-3">
-          {loading ? (
-          <div className="py-12 flex justify-center"><Spinner size={24} /></div>
+      {/* Tab content */}
+      <div className="space-y-3">
+        {loading ? (
+          <div className="py-12 flex justify-center"><Spinner size={24} color="text-violet" /></div>
         ) : tab === 'posts' ? (
-          posts.length === 0 ? <EmptyState title="No posts yet" /> : posts.map((p) => (
-            <Card key={p.id} className="p-4">
-              <p className="text-sm text-ink whitespace-pre-wrap">{p.content}</p>
-            </Card>
-          ))
-        ) : tab === 'projects' ? (
-          projects.length === 0 ? <EmptyState title="No projects yet" /> : projects.map((p) => (
-            <Card key={p.id} className="p-4">
-              <h3 className="font-display font-semibold text-sm">{p.title}</h3>
-              <p className="text-sm text-ink-soft mt-1">{p.description}</p>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {p.skills.map((s) => <SkillPill key={s} size="sm">{s}</SkillPill>)}
+          posts.length === 0
+            ? <EmptyState title="No posts yet" description={isOwnProfile ? "Share something with VIT Bhopal." : undefined} />
+            : posts.map((p) => (
+              <div key={p.id} className="vc-card p-4">
+                <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">{p.content}</p>
+                <p className="text-xs text-ink-faint font-mono mt-2">
+                  {new Date(p.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
               </div>
-            </Card>
-          ))
+            ))
+        ) : tab === 'projects' ? (
+          projects.length === 0
+            ? <EmptyState title="No projects yet" description="Join or create a project on the Connect page." />
+            : projects.map((p) => (
+              <div key={p.id} className="vc-card p-4">
+                <h3 className="font-display font-bold text-sm text-ink">{p.title}</h3>
+                <p className="text-sm text-ink-soft mt-1 leading-relaxed">{p.description}</p>
+                {p.skills?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2.5">
+                    {p.skills.map((s) => <SkillPill key={s} size="sm">{s}</SkillPill>)}
+                  </div>
+                )}
+              </div>
+            ))
         ) : (
-          communities.length === 0 ? <EmptyState title="No communities joined" /> : communities.map((c) => (
-            <Card key={c.id} className="p-4">
-              <h3 className="font-display font-semibold text-sm">{c.name}</h3>
-              <p className="text-sm text-ink-soft mt-1">{c.description}</p>
-            </Card>
-          ))
+          communities.length === 0
+            ? <EmptyState title="No communities joined" description="Explore and join communities that match your interests." />
+            : communities.map((c) => (
+              <div key={c.id} className="vc-card p-4">
+                <h3 className="font-display font-bold text-sm text-ink">{c.name}</h3>
+                <p className="text-sm text-ink-soft mt-1 leading-relaxed">{c.description}</p>
+              </div>
+            ))
         )}
       </div>
     </div>

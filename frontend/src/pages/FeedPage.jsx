@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import PostComposer from '../components/PostComposer'
 import PostCard from '../components/PostCard'
-import DiscoverySidebar from '../components/DiscoverySidebar'
+import Sidebar from '../components/Sidebar'
 import { EmptyState, Spinner } from '../components/ui/Primitives'
 
 const TABS = [
@@ -28,11 +28,9 @@ export default function FeedPage() {
       .eq('is_hidden', false)
 
     if (tab === 'trending') {
-      // last 24h, sorted by like+comment volume
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
       query = query.gte('created_at', since).order('like_count', { ascending: false })
     } else if (tab === 'network') {
-      // posts from project teammates (people you share an accepted project with)
       if (followingIds === null) {
         const ids = await loadNetworkIds()
         setFollowingIds(ids)
@@ -53,7 +51,6 @@ export default function FeedPage() {
     const { data, error } = await query.limit(30)
     if (error) { console.error(error); setLoading(false); return }
 
-    // attach whether current user liked each post
     const postIds = (data || []).map((p) => p.id)
     let likedSet = new Set()
     if (postIds.length) {
@@ -91,25 +88,17 @@ export default function FeedPage() {
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <header className="flex items-end justify-between mb-8 flex-wrap gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs mb-3">Feed</div>
-          <h1 className="font-display text-4xl font-bold">Discover the <span className="text-gradient">community</span></h1>
-          <p className="mt-2 text-muted-foreground max-w-xl">See updates from across projects, communities and events — share, discuss, and collaborate.</p>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-2xl space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_288px] gap-5">
+      <div className="space-y-4 min-w-0">
         <PostComposer onPosted={loadPosts} />
 
+        {/* Tab bar */}
         <div className="flex items-center gap-1 border-b border-line">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => { setTab(t.key); if (t.key === 'network') setFollowingIds(null) }}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors
-                ${tab === t.key ? 'border-ink text-ink' : 'border-transparent text-ink-faint hover:text-ink'}`}
+              className={`tab-btn ${tab === t.key ? 'tab-btn-active' : 'tab-btn-inactive'}`}
             >
               {t.label}
             </button>
@@ -117,19 +106,29 @@ export default function FeedPage() {
         </div>
 
         {loading ? (
-          <div className="py-16 flex justify-center"><Spinner size={28} /></div>
+          <div className="py-20 flex justify-center">
+            <Spinner size={28} color="text-violet" />
+          </div>
         ) : posts.length === 0 ? (
           <EmptyState
             title={tab === 'network' ? 'No teammate posts yet' : 'Nothing here yet'}
             description={
               tab === 'network'
-                ? 'Join a project on Connect to see posts from your teammates here.'
+                ? 'Join a project on Connect to see posts from teammates.'
                 : 'Be the first to share something with VIT Bhopal.'
             }
           />
         ) : (
-          posts.map((post) => <PostCard key={post.id} post={post} onUpdate={loadPosts} />)
+          <div className="space-y-3">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} onUpdate={loadPosts} />
+            ))}
+          </div>
         )}
+      </div>
+
+      <div className="hidden lg:block">
+        <Sidebar />
       </div>
     </div>
   )

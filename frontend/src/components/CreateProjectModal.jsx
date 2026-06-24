@@ -50,83 +50,115 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-ink/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
+        className="bg-paper-card rounded-t-3xl sm:rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-display text-xl font-semibold">Start a project</h2>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink text-xl leading-none">✕</button>
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-line rounded-full" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-mono text-ink-soft mb-1.5">PROJECT TITLE</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="AI Resume Builder"
-              className="input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-mono text-ink-soft mb-1.5">DESCRIPTION</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What you're building, what stage you're at, what you need help with"
-              rows={3}
-              className="input resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-mono text-ink-soft mb-2">SKILLS REQUIRED</label>
-            <div className="flex flex-wrap gap-2">
-              {SKILL_OPTIONS.map((s) => (
-                <SkillPill key={s} size="sm" active={skills.includes(s)} onClick={() => toggleSkill(s)}>
-                  {s}
-                </SkillPill>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <label className="block text-xs font-mono text-ink-soft mb-1.5">TEAM SIZE</label>
+              <h2 className="font-display text-xl font-bold">Start a project</h2>
+              <p className="text-sm text-ink-faint mt-0.5">Find teammates with the right skills</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-paper-dim hover:bg-line text-ink-faint flex items-center justify-center transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-mono text-ink-soft mb-1.5 tracking-wide uppercase">
+                Project title
+              </label>
               <input
-                type="number"
-                min={1}
-                max={20}
-                value={teamSize}
-                onChange={(e) => setTeamSize(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="AI Resume Builder"
                 className="input"
               />
             </div>
+
             <div>
-              <label className="block text-xs font-mono text-ink-soft mb-1.5">GITHUB REPO (OPTIONAL)</label>
-              <input
-                value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value)}
-                placeholder="github.com/you/repo"
-                className="input"
+              <label className="block text-xs font-mono text-ink-soft mb-1.5 tracking-wide uppercase">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What you're building, what stage you're at, what help you need"
+                rows={3}
+                className="input resize-none"
               />
             </div>
-          </div>
 
-          {error && <p className="text-sm text-rust">{error}</p>}
+            <div>
+              <label className="block text-xs font-mono text-ink-soft mb-2 tracking-wide uppercase">
+                Skills required
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {SKILL_OPTIONS.map((s) => (
+                  <SkillPill key={s} size="sm" active={skills.includes(s)} onClick={() => toggleSkill(s)}>
+                    {s}
+                  </SkillPill>
+                ))}
+              </div>
+            </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="accent" className="flex-1" disabled={!canSubmit}>
-              {saving ? <Spinner size={16} /> : 'Create project'}
-            </Button>
-          </div>
-        </form>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-mono text-ink-soft mb-1.5 tracking-wide uppercase">
+                  Team size
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={teamSize}
+                  onChange={(e) => setTeamSize(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-ink-soft mb-1.5 tracking-wide uppercase">
+                  GitHub repo
+                </label>
+                <input
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  placeholder="optional"
+                  className="input"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-rust-soft border border-rust/20 rounded-xl px-4 py-3 text-sm text-rust">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="accent" className="flex-1" disabled={!canSubmit}>
+                {saving ? <Spinner size={16} /> : 'Create project'}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
