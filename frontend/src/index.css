@@ -45,6 +45,7 @@
 html {
   background-color: var(--color-paper);
   color: var(--color-ink);
+  overflow-y: scroll;
 }
 
 body {
