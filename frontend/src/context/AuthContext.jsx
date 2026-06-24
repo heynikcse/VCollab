@@ -11,23 +11,35 @@ export function AuthProvider({ children }) {
   const loadProfile = useCallback(async (userId) => {
     if (!userId) {
       setProfile(null)
-      return
+      return null
     }
+
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single()
-    if (!error) setProfile(data)
+
+    if (!error) {
+      setProfile(data)
+      return data
+    }
+
+    return null
   }, [])
 
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return
+
       setSession(session)
-      if (session?.user) loadProfile(session.user.id)
+
+      if (session?.user) {
+        await loadProfile(session.user.id)
+      }
+
       setLoading(false)
     })
 
