@@ -53,7 +53,7 @@ export default function AppShell() {
               <span className="font-display font-bold text-amber text-sm">V</span>
             </div>
             <span className="font-display font-bold text-ink tracking-tight hidden sm:block text-[15px]">
-              VCollab
+              VCollab β 
             </span>
           </button>
 
