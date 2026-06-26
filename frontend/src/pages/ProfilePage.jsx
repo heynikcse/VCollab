@@ -283,6 +283,19 @@ export default function ProfilePage() {
                 </div>
               ))}
             </div>
+            {profile.github && (
+  
+              < a href={`https://github.com/${profile.github}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-ink-soft hover:text-ink transition-colors mt-3"
+              >
+                <GithubIcon className="w-3.5 h-3.5" />
+                <span className="underline underline-offset-2">github.com/{profile.github}</span>
+              </a>
+            )}
+
+{profile.github && <GitHubContributions username={profile.github} />}
           </div>
         </div>
 
