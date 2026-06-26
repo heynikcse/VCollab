@@ -11,7 +11,7 @@ import FeedPage from './pages/FeedPage'
 import ConnectPage from './pages/ConnectPage'
 import CommunityPage from './pages/CommunityPage'
 import EventsPage from './pages/EventsPage'
-import ResetPasswordPage from './pages/Resetpasswordpage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function FullScreenLoader() {
   return (

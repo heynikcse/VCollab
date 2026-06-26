@@ -7,7 +7,6 @@ import SkillPill from '../components/ui/SkillPill'
 import Button from '../components/ui/Button'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import DeleteAccountSection from '../components/DeleteAccountSection'
-import { StatusBadge } from '../components/ProjectStatusControl'
 
 const TABS = [
   { key: 'posts',       label: 'Posts' },
@@ -283,10 +282,7 @@ export default function ProfilePage() {
               )
               : projects.map((p) => (
                 <div key={p.id} className="vc-card p-4">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="font-display font-bold text-sm text-ink">{p.title}</h3>
-                    <StatusBadge status={p.status} />
-                  </div>
+                  <h3 className="font-display font-bold text-sm text-ink">{p.title}</h3>
                   <p className="text-sm text-ink-soft mt-1 leading-relaxed">{p.description}</p>
                   {p.skills?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2.5">
