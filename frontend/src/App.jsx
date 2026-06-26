@@ -11,6 +11,7 @@ import FeedPage from './pages/FeedPage'
 import ConnectPage from './pages/ConnectPage'
 import CommunityPage from './pages/CommunityPage'
 import EventsPage from './pages/EventsPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function FullScreenLoader() {
   return (
@@ -51,6 +52,12 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
+
+      {/* Public — no auth guard. Supabase lands the user here after they
+          click the password-reset link in their email. The one-time token
+          in the URL is not a normal session, so RequireAuth would bounce them. */}
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+
       <Route path="/profile/setup" element={<RequireProfileSetup><ProfileSetupPage /></RequireProfileSetup>} />
 
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>

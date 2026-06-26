@@ -6,31 +6,34 @@ import { Avatar } from './ui/Primitives'
 import SkillPill from './ui/SkillPill'
 
 const POST_TYPE_TONE = {
-  general: 'default',
-  question: 'amber',
-  opinion: 'teal',
+  general:      'default',
+  question:     'amber',
+  opinion:      'teal',
   announcement: 'rust',
 }
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000
-  if (diff < 60) return 'just now'
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`
+  if (diff < 60)    return 'just now'
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`
   return `${Math.floor(diff / 86400)}d`
 }
 
 export default function PostCard({ post, onUpdate }) {
   const { user, profile } = useAuth()
-  const navigate = useNavigate()
-  const [liked, setLiked] = useState(post.liked_by_me)
-  const [likeCount, setLikeCount] = useState(post.like_count)
-  const [showComments, setShowComments] = useState(false)
-  const [comments, setComments] = useState([])
-  const [commentText, setCommentText] = useState('')
-  const [reported, setReported] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const navigate           = useNavigate()
 
+  const [liked, setLiked]             = useState(post.liked_by_me)
+  const [likeCount, setLikeCount]     = useState(post.like_count)
+  const [showComments, setShowComments] = useState(false)
+  const [comments, setComments]       = useState([])
+  const [commentText, setCommentText] = useState('')
+  const [reported, setReported]       = useState(false)
+  const [reportError, setReportError] = useState('')
+  const [busy, setBusy]               = useState(false)
+
+  // ── Like / unlike ────────────────────────────────────────
   async function toggleLike() {
     if (busy) return
     setBusy(true)
@@ -46,6 +49,7 @@ export default function PostCard({ post, onUpdate }) {
     setBusy(false)
   }
 
+  // ── Comments ─────────────────────────────────────────────
   async function loadComments() {
     const { data } = await supabase
       .from('comments')
@@ -73,15 +77,60 @@ export default function PostCard({ post, onUpdate }) {
     }
   }
 
+  // ── Report (with dedup + rate-limit) ─────────────────────
   async function handleReport() {
     if (reported) return
-    const reason = window.prompt('Why are you reporting this post? (optional)') || null
-    const { error } = await supabase
+    setReportError('')
+
+    // 1. Check: has this user already reported this post?
+    const { data: existingReport } = await supabase
       .from('post_reports')
-      .insert({ post_id: post.id, reported_by: user.id, reason })
-    if (!error) setReported(true)
+      .select('id')
+      .eq('post_id', post.id)
+      .eq('reported_by', user.id)
+      .maybeSingle()
+
+    if (existingReport) {
+      setReportError('You have already reported this post.')
+      return
+    }
+
+    // 2. Check: user has not exceeded 3 reports today
+    const today = new Date().toISOString().slice(0, 10)   // 'YYYY-MM-DD'
+    const { count: todayCount } = await supabase
+      .from('post_reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('reported_by', user.id)
+      .eq('report_date', today)
+
+    if (todayCount >= 3) {
+      setReportError('You can only report 3 posts per day.')
+      return
+    }
+
+    // 3. Prompt for optional reason
+    const reason = window.prompt('Why are you reporting this post? (optional)') || null
+    if (reason === null && !window.confirm('Submit report without a reason?')) return
+
+    const { error } = await supabase.from('post_reports').insert({
+      post_id:     post.id,
+      reported_by: user.id,
+      reason,
+      report_date: today,
+    })
+
+    if (!error) {
+      setReported(true)
+      // The DB trigger will automatically set is_hidden = true if reports >= 5
+    } else if (error.code === '23505') {
+      // Duplicate key — already reported (race condition)
+      setReportError('You have already reported this post.')
+    } else {
+      setReportError('Could not submit report. Try again.')
+    }
   }
 
+  // ── Delete (owner only) ───────────────────────────────────
   async function handleDelete() {
     if (!window.confirm('Delete this post?')) return
     await supabase.from('posts').delete().eq('id', post.id)
@@ -89,7 +138,7 @@ export default function PostCard({ post, onUpdate }) {
   }
 
   const isOwner = post.user_id === user.id
-  const author = post.users
+  const author  = post.users
 
   return (
     <div className="vc-card p-4 sm:p-5">
@@ -160,6 +209,9 @@ export default function PostCard({ post, onUpdate }) {
                 </button>
               )}
               {reported && <span className="text-xs text-rust">Reported</span>}
+              {reportError && (
+                <span className="text-xs text-rust">{reportError}</span>
+              )}
               {isOwner && (
                 <button
                   onClick={handleDelete}
@@ -217,10 +269,15 @@ function HeartIcon({ filled, ...props }) {
     </svg>
   )
 }
+
 function CommentIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M21 11.5a8.5 8.5 0 01-8.5 8.5 8.4 8.4 0 01-4-1L3 20l1.1-3.6A8.4 8.4 0 014 13.5 8.5 8.5 0 1121 11.5z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M21 11.5a8.5 8.5 0 01-8.5 8.5 8.4 8.4 0 01-4-1L3 20l1.1-3.6A8.4 8.4 0 014 13.5 8.5 8.5 0 1121 11.5z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

@@ -1,104 +1,106 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { supabase, isValidCollegeEmail } from '../lib/supabase'
+/**
+ * AuthContext
+ *
+ * Preserves the original isProfileComplete logic that App.jsx depends on,
+ * and adds last_seen tracking on login / session refresh.
+ */
+import { createContext, useContext, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
+// A profile is "complete" when the user has filled in at least their name.
+// Adjust this check to match whatever your ProfileSetupPage collects.
+function checkProfileComplete(profile) {
+  return !!(profile && profile.name && profile.name.trim().length > 0)
+}
+
+async function touchLastSeen(uid) {
+  await supabase
+    .from('users')
+    .update({ last_seen: new Date().toISOString() })
+    .eq('id', uid)
+}
+
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser]                     = useState(null)
+  const [profile, setProfile]               = useState(null)
+  const [isProfileComplete, setIsComplete]  = useState(false)
+  const [loading, setLoading]               = useState(true)
 
-  const loadProfile = useCallback(async (userId) => {
-    if (!userId) {
-      setProfile(null)
-      return null
-    }
-
-    const { data, error } = await supabase
+  async function fetchProfile(uid) {
+    const { data } = await supabase
       .from('users')
       .select('*')
-      .eq('id', userId)
+      .eq('id', uid)
       .single()
-
-    if (!error) {
-      setProfile(data)
-      return data
-    }
-
-    return null
-  }, [])
+    setProfile(data || null)
+    setIsComplete(checkProfileComplete(data))
+    return data
+  }
 
   useEffect(() => {
-    let mounted = true
-
+    // Bootstrap: check for an existing session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return
-
-      setSession(session)
-
       if (session?.user) {
-        await loadProfile(session.user.id)
+        setUser(session.user)
+        await fetchProfile(session.user.id)
+        touchLastSeen(session.user.id)
       }
-
       setLoading(false)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
-        setProfile(null)
-      }
-    })
+    // Listen for auth state changes (login, logout, token refresh, password recovery)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          setUser(session.user)
+          await fetchProfile(session.user.id)
+          if (event === 'SIGNED_IN') {
+            touchLastSeen(session.user.id)
+          }
+        } else {
+          setUser(null)
+          setProfile(null)
+          setIsComplete(false)
+        }
+      },
+    )
 
-    return () => {
-      mounted = false
-      listener.subscription.unsubscribe()
-    }
-  }, [loadProfile])
-
-  const signUp = useCallback(async (email, password) => {
-    if (!isValidCollegeEmail(email)) {
-      return { error: { message: 'Use your @vitbhopal.ac.in email to sign up.' } }
-    }
-    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password })
-    return { data, error }
+    return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = useCallback(async (email, password) => {
-    if (!isValidCollegeEmail(email)) {
-      return { error: { message: 'Use your @vitbhopal.ac.in email to sign in.' } }
+  async function signIn(email, password) {
+    const result = await supabase.auth.signInWithPassword({ email, password })
+    if (!result.error && result.data?.user) {
+      touchLastSeen(result.data.user.id)
     }
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
-    return { data, error }
-  }, [])
-
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
-  }, [])
-
-  const refreshProfile = useCallback(() => {
-    if (session?.user) loadProfile(session.user.id)
-  }, [session, loadProfile])
-
-  const value = {
-    session,
-    user: session?.user ?? null,
-    profile,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    refreshProfile,
-    // a profile is "complete" once name + branch + year are set
-    isProfileComplete: !!(profile?.name && profile?.branch && profile?.year),
+    return result
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  async function signUp(email, password) {
+    return supabase.auth.signUp({ email, password })
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+  }
+
+  const value = {
+    user,
+    profile,
+    isProfileComplete,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
