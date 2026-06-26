@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
     signIn,
     signUp,
     signOut,
+    refreshProfile: () => user && fetchProfile(user.id),
   }
 
   return (
