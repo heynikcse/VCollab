@@ -13,45 +13,7 @@ const TABS = [
 
 // ── GitHub contribution graph (public API, no token needed) ──
 function GitHubContributions({ username }) {
-  const [weeks, setWeeks]     = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(false)
-
-  useEffect(() => {
-    if (!username) return
-    setLoading(true)
-    setError(false)
-
-    fetch(`https://corsproxy.io/?${encodeURIComponent(`https://github.com/users/${username}/contributions`)}`)
-      .then((r) => r.text())
-      .then((html) => {
-        const parser = new DOMParser()
-        const doc    = parser.parseFromString(html, 'text/html')
-        const rects  = Array.from(doc.querySelectorAll('td.ContributionCalendar-day'))
-
-        const allDays = rects.map((el) => ({
-          count: parseInt(el.getAttribute('data-count') || '0', 10),
-          date:  el.getAttribute('data-date') || '',
-          level: parseInt(el.getAttribute('data-level') || '0', 10),
-        }))
-
-        const grouped = []
-        for (let i = 0; i < allDays.length; i += 7) {
-          grouped.push(allDays.slice(i, i + 7))
-        }
-        setWeeks(grouped.slice(-26))
-        setLoading(false)
-      })
-      .catch(() => { setError(true); setLoading(false) })
-  }, [username])
-
-  const LEVEL_COLORS = [
-    'bg-paper-dim  border-line',
-    'bg-teal/20    border-teal/10',
-    'bg-teal/40    border-teal/20',
-    'bg-teal/70    border-teal/30',
-    'bg-teal        border-teal/50',
-  ]
+  const [error, setError] = useState(false)
 
   if (!username) return null
 
@@ -59,8 +21,8 @@ function GitHubContributions({ username }) {
     <div className="mt-4 pt-4 border-t border-line-soft">
       <div className="flex items-center justify-between mb-2">
         <p className="section-label">GitHub Activity</p>
-        <a
-          href={`https://github.com/${username}`}
+        
+        < a href={`https://github.com/${username}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-ink-faint hover:text-ink transition-colors"
@@ -69,31 +31,16 @@ function GitHubContributions({ username }) {
         </a>
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-4">
-          <Spinner size={16} color="text-ink-faint" />
-        </div>
-      )}
-
-      {error && (
+      {!error ? (
+        <img
+          src={`https://ghchart.rshah.org/${username}`}
+          alt={`${username}'s GitHub contributions`}
+          className="w-full rounded-sm"
+          onError={() => setError(true)}
+          style={{ filter: 'hue-rotate(200deg)' }} // tints it to match your teal theme
+        />
+      ) : (
         <p className="text-xs text-ink-faint">Could not load contributions.</p>
-      )}
-
-      {!loading && !error && (
-        <div className="flex gap-[2px] w-full">
-          {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-[2px] flex-1">
-              {week.map((day, di) => (
-                <div
-                  key={di}
-                  title={day.date ? `${day.date}: ${day.count} contribution${day.count !== 1 ? 's' : ''}` : ''}
-                  className={`w-full rounded-[2px] border ${LEVEL_COLORS[day.level] || LEVEL_COLORS[0]}`}
-                  style={{ aspectRatio: '1' }}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
       )}
     </div>
   )
@@ -189,17 +136,17 @@ export default function ProfilePage() {
     <div className="flex gap-6 items-start max-w-5xl mx-auto">
 
       {/* ════════ LEFT — sticky profile card ════════ */}
-      <aside className="hidden md:flex flex-col gap-4 w-72 shrink-0 sticky top-6">
+      <aside className="hidden md:flex flex-col gap-4 w-80 shrink-0 sticky top-6">
         <div className="vc-card overflow-hidden">
           {/* Banner */}
           <div className="h-16 bg-gradient-to-r from-violet/15 via-amber/10 to-teal/15" />
 
           <div className="px-4 pb-5">
             {/* Avatar */}
-            <div className="-mt-8 mb-3">
+            <div className="-mt-10 mb-3">
               <div className="rounded-2xl border-4 border-paper-card overflow-hidden inline-block"
-                style={{ width: 64, height: 64 }}>
-                <Avatar url={profile.avatar_url} name={profile.name} size={64} />
+                style={{ width: 80, height: 80 }}>
+                <Avatar url={profile.avatar_url} name={profile.name} size={80} />
               </div>
             </div>
 
@@ -259,7 +206,7 @@ export default function ProfilePage() {
       <main className="flex-1 min-w-0">
         {/* Mobile-only compact profile header */}
         <div className="md:hidden vc-card overflow-hidden mb-4">
-          <div className="h-16 bg-gradient-to-r from-violet/15 via-amber/10 to-teal/15" />
+          <div className="h-24 bg-gradient-to-r from-violet/15 via-amber/10 to-teal/15" />
           <div className="px-4 pb-4">
             <div className="flex items-end justify-between -mt-7 mb-3">
               <div className="rounded-xl border-4 border-paper-card overflow-hidden"
