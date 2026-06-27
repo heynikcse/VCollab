@@ -125,8 +125,7 @@ export default function LoginPage() {
               <span className="font-display font-bold text-amber text-sm">V</span>
             </div>
             <div>
-              <span className="font-display font-bold text-[15px] tracking-tight text-ink">VCollab</span>
-              <p className="text-[9px] font-mono text-ink-faint tracking-widest uppercase leading-none">Build Together</p>
+              <span className="font-display font-bold text-[15px] tracking-tight text-ink">VCollab β</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
