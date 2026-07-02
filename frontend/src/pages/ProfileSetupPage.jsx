@@ -59,21 +59,22 @@ export default function ProfileSetupPage() {
       }
 
       const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          name: name.trim(),
-          branch: branch.trim(),
-          year: Number(year),
-          bio: bio.trim() || null,
-          skills,
-          github: github.trim() || null,
-          ...(avatar_url ? { avatar_url } : {}),
-        })
-        .eq('id', user.id)
+      .from('users')
+      .upsert({
+        id: user.id,
+        email: user.email,
+        name: name.trim(),
+        branch: branch.trim(),
+        year: Number(year),
+        bio: bio.trim() || null,
+        skills,
+        github: github.trim() || null,
+        ...(avatar_url ? { avatar_url } : {}),
+      })
 
-      if (updateError) throw updateError
-      refreshProfile()
-      navigate('/feed')
+    if (updateError) throw updateError
+    await refreshProfile()
+    navigate('/feed')
     } catch (err) {
       setError(err.message || 'Something went wrong. Try again.')
     } finally {

@@ -398,8 +398,23 @@ function DeleteAccountModal({ user, signOut, onClose }) {
     setDeleting(true)
     setError('')
     try {
-      await supabase.from('users').delete().eq('id', user.id)
-      await supabase.auth.admin.deleteUser(user.id) // needs service role; or use an Edge Function
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Failed to delete account')
+
+      await supabase.auth.signOut()
       signOut()
     } catch (err) {
       setError(err.message || 'Could not delete account. Contact support.')
