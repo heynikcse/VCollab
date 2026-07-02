@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { isValidCollegeEmail, COLLEGE_DOMAIN, supabase } from '../lib/supabase'
 import { Spinner } from '../components/ui/Primitives'
 
-const BETA_LIMIT = 200
+const BETA_LIMIT = 20
 
 const FEATURES = [
   {
