@@ -144,7 +144,7 @@ export default function ProfilePage() {
           <div className="px-4 pb-5">
             {/* Avatar */}
             <div className="-mt-10 mb-3">
-              <div className="rounded-2xl border-4 border-paper-card overflow-hidden inline-block"
+              <div className="rounded-full border-4 border-paper-card overflow-hidden inline-block"
                 style={{ width: 80, height: 80 }}>
                 <Avatar url={profile.avatar_url} name={profile.name} size={80} />
               </div>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
           <div className="h-24 bg-gradient-to-r from-violet/15 via-amber/10 to-teal/15" />
           <div className="px-4 pb-4">
             <div className="flex items-end justify-between -mt-7 mb-3">
-              <div className="rounded-xl border-4 border-paper-card overflow-hidden"
+              <div className="rounded-full border-4 border-paper-card overflow-hidden"
                 style={{ width: 56, height: 56 }}>
                 <Avatar url={profile.avatar_url} name={profile.name} size={56} />
               </div>
@@ -230,6 +230,16 @@ export default function ProfilePage() {
                 </div>
               ))}
             </div>
+
+            {/* Skills — now shown on mobile too */}
+            {profile.skills?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-3">
+                {profile.skills.map((s) => (
+                  <SkillPill key={s} size="sm">{s}</SkillPill>
+                ))}
+              </div>
+            )}
+
             {profile.github && (
   
               < a href={`https://github.com/${profile.github}`}

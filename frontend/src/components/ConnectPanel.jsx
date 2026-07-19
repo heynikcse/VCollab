@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { Avatar, Spinner } from './ui/Primitives'
@@ -22,7 +23,7 @@ export default function ConnectPanel({ refreshKey }) {
       const projectIds = projects.map((p) => p.id)
       const { data: requests } = await supabase
         .from('project_members')
-        .select('id, project_id, status, joined_at, users(name, avatar_url, skills, github)')
+        .select('id, project_id, user_id, status, joined_at, users(name, avatar_url, skills, github)')
         .in('project_id', projectIds)
         .eq('status', 'pending')
         .order('joined_at', { ascending: true })
@@ -52,22 +53,20 @@ export default function ConnectPanel({ refreshKey }) {
           <div className="space-y-3">
             {pendingRequests.map((req) => (
               <div key={req.id} className="bg-paper-dim rounded-xl p-3">
-                <div className="flex items-center gap-2.5">
+                <Link
+                  to={`/profile/${req.user_id}`}
+                  className="flex items-center gap-2.5 hover:opacity-75 transition-opacity"
+                >
                   <Avatar url={req.users?.avatar_url} name={req.users?.name} size={32} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-ink truncate">{req.users?.name}</p>
                     {req.users?.github && (
-                      <a
-                        href={`https://github.com/${req.users.github}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-mono text-ink-faint hover:text-ink underline underline-offset-2"
-                      >
+                      <span className="text-xs font-mono text-ink-faint">
                         github/{req.users.github}
-                      </a>
+                      </span>
                     )}
                   </div>
-                </div>
+                </Link>
                 {req.users?.skills?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {req.users.skills.slice(0, 3).map((s) => (
