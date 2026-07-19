@@ -18,6 +18,7 @@ export default function FeedPage() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [followingIds, setFollowingIds] = useState(null)
+  const [connectedIds, setConnectedIds] = useState(null)
 
   const loadPosts = useCallback(async () => {
     setLoading(true)
@@ -27,15 +28,18 @@ export default function FeedPage() {
       .select('*, users(name, avatar_url, branch, year)')
       .eq('is_hidden', false)
 
+    // local copy so we can use it in this same call without waiting on state
+    let ids = connectedIds
+
     if (tab === 'trending') {
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
       query = query.gte('created_at', since).order('like_count', { ascending: false })
     } else if (tab === 'network') {
       if (followingIds === null) {
-        const ids = await loadNetworkIds()
-        setFollowingIds(ids)
-        if (ids.length === 0) { setPosts([]); setLoading(false); return }
-        query = query.in('user_id', ids)
+        const netIds = await loadNetworkIds()
+        setFollowingIds(netIds)
+        if (netIds.length === 0) { setPosts([]); setLoading(false); return }
+        query = query.in('user_id', netIds)
       } else if (followingIds.length === 0) {
         setPosts([])
         setLoading(false)
@@ -45,6 +49,11 @@ export default function FeedPage() {
       }
       query = query.order('created_at', { ascending: false })
     } else {
+      // latest — fetch accepted connections once so we can bubble their posts up
+      if (ids === null) {
+        ids = await loadConnectedIds()
+        setConnectedIds(ids)
+      }
       query = query.order('created_at', { ascending: false })
     }
 
@@ -62,10 +71,24 @@ export default function FeedPage() {
       likedSet = new Set((likes || []).map((l) => l.post_id))
     }
 
-    setPosts((data || []).map((p) => ({ ...p, liked_by_me: likedSet.has(p.id) })))
-    setLoading(false)
-  }, [tab, user.id, followingIds])
+    let mapped = (data || []).map((p) => ({ ...p, liked_by_me: likedSet.has(p.id) }))
 
+    // Latest tab: connected users' posts first (each group still newest-first)
+    if (tab === 'latest' && ids?.length) {
+      const connectedSet = new Set(ids)
+      mapped = [...mapped].sort((a, b) => {
+        const aFirst = connectedSet.has(a.user_id) ? 0 : 1
+        const bFirst = connectedSet.has(b.user_id) ? 0 : 1
+        if (aFirst !== bFirst) return aFirst - bFirst
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+    }
+
+    setPosts(mapped)
+    setLoading(false)
+  }, [tab, user.id, followingIds, connectedIds])
+
+  // Shared project OR shared community = "network"
   async function loadNetworkIds() {
     const { data: myProjects } = await supabase
       .from('project_members')
@@ -73,14 +96,46 @@ export default function FeedPage() {
       .eq('user_id', user.id)
       .eq('status', 'accepted')
     const projectIds = (myProjects || []).map((p) => p.project_id)
-    if (!projectIds.length) return []
 
-    const { data: teammates } = await supabase
-      .from('project_members')
-      .select('user_id')
-      .in('project_id', projectIds)
+    const { data: myCommunities } = await supabase
+      .from('community_members')
+      .select('community_id')
+      .eq('user_id', user.id)
+    const communityIds = (myCommunities || []).map((c) => c.community_id)
+
+    const ids = new Set()
+
+    if (projectIds.length) {
+      const { data: teammates } = await supabase
+        .from('project_members')
+        .select('user_id')
+        .in('project_id', projectIds)
+        .eq('status', 'accepted')
+      ;(teammates || []).forEach((t) => ids.add(t.user_id))
+    }
+
+    if (communityIds.length) {
+      const { data: communityMates } = await supabase
+        .from('community_members')
+        .select('user_id')
+        .in('community_id', communityIds)
+      ;(communityMates || []).forEach((c) => ids.add(c.user_id))
+    }
+
+    ids.delete(user.id)
+    return [...ids]
+  }
+
+  async function loadConnectedIds() {
+    const { data } = await supabase
+      .from('connections')
+      .select('requester_id, recipient_id')
       .eq('status', 'accepted')
-    return [...new Set((teammates || []).map((t) => t.user_id))].filter((id) => id !== user.id)
+      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
+
+    return [...new Set(
+      (data || []).map((c) => (c.requester_id === user.id ? c.recipient_id : c.requester_id))
+    )]
   }
 
   useEffect(() => {
@@ -114,7 +169,7 @@ export default function FeedPage() {
             title={tab === 'network' ? 'No teammate posts yet' : 'Nothing here yet'}
             description={
               tab === 'network'
-                ? 'Join a project on Connect to see posts from teammates.'
+                ? 'Join a project or community on Connect to see posts from your network.'
                 : 'Be the first to share something with VIT Bhopal.'
             }
           />

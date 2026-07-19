@@ -46,6 +46,69 @@ function GitHubContributions({ username }) {
   )
 }
 
+// ── Connect button (Connect / Requested / Accept·Decline / Connected) ──
+function ConnectionButton({ connection, currentUserId, busy, onConnect, onCancel, onAccept, onDecline, onDisconnect }) {
+  if (connection === null) {
+    return <div className="h-9 rounded-xl bg-paper-dim animate-pulse" />
+  }
+
+  if (connection === 'none') {
+    return (
+      <button
+        onClick={onConnect}
+        disabled={busy}
+        className="w-full h-9 rounded-xl bg-ink text-paper text-sm font-medium hover:bg-ink/90 transition-colors disabled:opacity-50"
+      >
+        Connect
+      </button>
+    )
+  }
+
+  if (connection.status === 'accepted') {
+    return (
+      <button
+        onClick={onDisconnect}
+        disabled={busy}
+        className="w-full h-9 rounded-xl border border-line text-ink-soft text-sm font-medium hover:border-rust/40 hover:text-rust transition-colors disabled:opacity-50"
+      >
+        ✓ Connected
+      </button>
+    )
+  }
+
+  // status === 'pending'
+  if (connection.requester_id === currentUserId) {
+    return (
+      <button
+        onClick={onCancel}
+        disabled={busy}
+        className="w-full h-9 rounded-xl border border-line text-ink-faint text-sm font-medium hover:border-rust/40 hover:text-rust transition-colors disabled:opacity-50"
+      >
+        Requested · Cancel
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex gap-2">
+      <button
+        onClick={onAccept}
+        disabled={busy}
+        className="flex-1 h-9 rounded-xl bg-ink text-paper text-sm font-medium hover:bg-ink/90 transition-colors disabled:opacity-50"
+      >
+        Accept
+      </button>
+      <button
+        onClick={onDecline}
+        disabled={busy}
+        className="flex-1 h-9 rounded-xl border border-line text-ink-faint text-sm font-medium hover:border-rust/40 hover:text-rust transition-colors disabled:opacity-50"
+      >
+        Decline
+      </button>
+    </div>
+  )
+}
+
 export default function ProfilePage() {
   const { userId } = useParams()
   const { user, profile: myProfile } = useAuth()
@@ -60,6 +123,10 @@ export default function ProfilePage() {
   const [communities, setCommunities] = useState([])
   const [loading, setLoading]         = useState(true)
   const [stats, setStats]             = useState({ posts: 0, projects: 0, communities: 0 })
+
+  // connection (with this profile's owner), 'none', or null while loading
+  const [connection, setConnection]         = useState(null)
+  const [connectionBusy, setConnectionBusy] = useState(false)
 
   // Touch last_seen on own profile visit
   useEffect(() => {
@@ -77,6 +144,66 @@ export default function ProfilePage() {
         .then(({ data }) => setProfile(data))
     }
   }, [targetId, isOwnProfile, myProfile])
+
+  // Load connection status with this profile
+  const loadConnection = useCallback(async () => {
+    if (isOwnProfile) { setConnection(null); return }
+    setConnection(null)
+    const { data } = await supabase
+      .from('connections')
+      .select('*')
+      .or(`and(requester_id.eq.${user.id},recipient_id.eq.${targetId}),and(requester_id.eq.${targetId},recipient_id.eq.${user.id})`)
+      .maybeSingle()
+    setConnection(data || 'none')
+  }, [isOwnProfile, user.id, targetId])
+
+  useEffect(() => { loadConnection() }, [loadConnection])
+
+  async function sendConnectionRequest() {
+    setConnectionBusy(true)
+    const { data, error } = await supabase
+      .from('connections')
+      .insert({ requester_id: user.id, recipient_id: targetId, status: 'pending' })
+      .select()
+      .single()
+    if (!error) setConnection(data)
+    setConnectionBusy(false)
+  }
+
+  async function cancelConnectionRequest() {
+    if (!connection?.id) return
+    setConnectionBusy(true)
+    await supabase.from('connections').delete().eq('id', connection.id)
+    setConnection('none')
+    setConnectionBusy(false)
+  }
+
+  async function respondToRequest(accept) {
+    if (!connection?.id) return
+    setConnectionBusy(true)
+    if (accept) {
+      const { data } = await supabase
+        .from('connections')
+        .update({ status: 'accepted' })
+        .eq('id', connection.id)
+        .select()
+        .single()
+      setConnection(data)
+    } else {
+      await supabase.from('connections').delete().eq('id', connection.id)
+      setConnection('none')
+    }
+    setConnectionBusy(false)
+  }
+
+  async function disconnect() {
+    if (!connection?.id) return
+    if (!window.confirm('Remove this connection?')) return
+    setConnectionBusy(true)
+    await supabase.from('connections').delete().eq('id', connection.id)
+    setConnection('none')
+    setConnectionBusy(false)
+  }
 
   // Load stats
   useEffect(() => {
@@ -132,6 +259,17 @@ export default function ProfilePage() {
     )
   }
 
+  const connectionHandlers = {
+    connection,
+    currentUserId: user.id,
+    busy: connectionBusy,
+    onConnect: sendConnectionRequest,
+    onCancel: cancelConnectionRequest,
+    onAccept: () => respondToRequest(true),
+    onDecline: () => respondToRequest(false),
+    onDisconnect: disconnect,
+  }
+
   return (
     <div className="flex gap-6 items-start max-w-5xl mx-auto">
 
@@ -158,6 +296,13 @@ export default function ProfilePage() {
 
             {profile.bio && (
               <p className="text-xs text-ink-soft leading-relaxed mt-2">{profile.bio}</p>
+            )}
+
+            {/* Connect button — only on someone else's profile */}
+            {!isOwnProfile && (
+              <div className="mt-3">
+                <ConnectionButton {...connectionHandlers} />
+              </div>
             )}
 
             {/* Stats */}
@@ -218,6 +363,14 @@ export default function ProfilePage() {
             <p className="text-xs text-ink-faint font-mono">
               {profile.branch}{profile.year ? ` · Year ${profile.year}` : ''}
             </p>
+
+            {/* Connect button — mobile */}
+            {!isOwnProfile && (
+              <div className="mt-3">
+                <ConnectionButton {...connectionHandlers} />
+              </div>
+            )}
+
             <div className="flex gap-5 mt-3">
               {[
                 { label: 'Posts',       value: stats.posts },
